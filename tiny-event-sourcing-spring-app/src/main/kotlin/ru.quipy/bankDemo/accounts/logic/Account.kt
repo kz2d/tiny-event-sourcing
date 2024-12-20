@@ -1,15 +1,21 @@
 package ru.quipy.bankDemo.accounts.logic
 
-import ru.quipy.bankDemo.accounts.api.*
 import ru.quipy.core.annotations.StateTransitionFunc
 import ru.quipy.domain.AggregateState
 import ru.quipy.domain.Event
+import ru.quipy.bankDemo.accounts.api.AccountAggregate
+import ru.quipy.bankDemo.accounts.api.AccountCreatedEvent
+import ru.quipy.bankDemo.accounts.api.BankAccountCreatedEvent
+import ru.quipy.bankDemo.accounts.api.BankAccountDepositEvent
+import ru.quipy.bankDemo.accounts.api.BankAccountWithdrawalEvent
+import ru.quipy.bankDemo.accounts.api.ExternalAccountTransferDepositFailedEvent
+import ru.quipy.bankDemo.accounts.api.ExternalAccountTransferDepositSuccessEvent
+import ru.quipy.bankDemo.accounts.api.ExternalAccountTransferEvent
+import ru.quipy.bankDemo.accounts.api.ExternalAccountTransferFailedEvent
+import ru.quipy.bankDemo.accounts.api.ExternalAccountTransferWithdrawFailedEvent
+import ru.quipy.bankDemo.accounts.api.ExternalAccountTransferWithdrawSuccessEvent
 import java.math.BigDecimal
-import java.util.*
-
-// вопрос, что делать, если, скажем, обрабатываем какой-то ивент, понимаем, что агрегата, который нужно обновить не существует.
-// Может ли ивент (ошибка) существовать в отрыве от агрегата?
-
+import java.util.UUID
 
 class Account : AggregateState<UUID, AccountAggregate> {
     lateinit var accountId: UUID
@@ -29,7 +35,10 @@ class Account : AggregateState<UUID, AccountAggregate> {
         return BankAccountCreatedEvent(accountId = accountId, bankAccountId = UUID.randomUUID())
     }
 
-    fun deposit(toBankAccountId: UUID, amount: BigDecimal): BankAccountDepositEvent {
+    fun deposit(
+        toBankAccountId: UUID,
+        amount: BigDecimal,
+    ) {
         val bankAccount = (bankAccounts[toBankAccountId]
             ?: throw IllegalArgumentException("No such account to transfer to: $toBankAccountId"))
 
@@ -39,50 +48,13 @@ class Account : AggregateState<UUID, AccountAggregate> {
         if (bankAccounts.values.sumOf { it.balance } + amount > BigDecimal(25_000_000))
             throw IllegalStateException("You can't store more than 25.000.000 in total")
 
-
-        return BankAccountDepositEvent(
-            accountId = accountId,
-            bankAccountId = toBankAccountId,
-            amount = amount
-        )
+        bankAccount.deposit(amount)
     }
 
-    fun performTransferTo(
-        bankAccountId: UUID,
-        transactionId: UUID,
-        transferAmount: BigDecimal
-    ): Event<AccountAggregate> {
-        val bankAccount = bankAccounts[bankAccountId]
-            ?: throw IllegalArgumentException("No such account to transfer to: $bankAccountId")
-
-        if (bankAccount.balance + transferAmount > BigDecimal(10_000_000)) {
-            return TransferTransactionDeclinedEvent(
-                accountId = accountId,
-                bankAccountId = bankAccountId,
-                transactionId = transactionId,
-                "User can't store more than 10.000.000 on account: ${bankAccount.id}"
-            )
-        }
-
-        if (bankAccounts.values.sumOf { it.balance } + transferAmount > BigDecimal(25_000_000)) {
-            return TransferTransactionDeclinedEvent(
-                accountId = accountId,
-                bankAccountId = bankAccountId,
-                transactionId = transactionId,
-                "User can't store more than 25.000.000 in total on account: ${bankAccount.id}"
-            )
-        }
-
-        return TransferTransactionAcceptedEvent(
-            accountId = accountId,
-            bankAccountId = bankAccountId,
-            transactionId = transactionId,
-            transferAmount = transferAmount,
-            isDeposit = true
-        )
-    }
-
-    fun withdraw(fromBankAccountId: UUID, amount: BigDecimal): BankAccountWithdrawalEvent {
+    fun withdraw(
+        fromBankAccountId: UUID,
+        amount: BigDecimal,
+    ) {
         val fromBankAccount = bankAccounts[fromBankAccountId]
             ?: throw IllegalArgumentException("No such account to withdraw from: $fromBankAccountId")
 
@@ -90,89 +62,24 @@ class Account : AggregateState<UUID, AccountAggregate> {
             throw IllegalArgumentException("Cannot withdraw $amount. Not enough money: ${fromBankAccount.balance}")
         }
 
-        return BankAccountWithdrawalEvent(
-            accountId = accountId,
-            bankAccountId = fromBankAccountId,
-            amount = amount
-        )
+        fromBankAccount.withdraw(amount)
     }
 
-    fun performTransferFrom(
-        bankAccountId: UUID,
-        transactionId: UUID,
-        transferAmount: BigDecimal
-    ): Event<AccountAggregate> {
-        val bankAccount = bankAccounts[bankAccountId]
-            ?: throw IllegalArgumentException("No such account to transfer from: $bankAccountId")
-
-        if (transferAmount > bankAccount.balance) {
-            return TransferTransactionDeclinedEvent(
-                accountId = accountId,
-                bankAccountId = bankAccountId,
-                transactionId = transactionId,
-                "Cannot withdraw $transferAmount. Not enough money: ${bankAccount.balance}"
-            )
-        }
-
-        return TransferTransactionAcceptedEvent(
-            accountId = accountId,
-            bankAccountId = bankAccountId,
-            transactionId = transactionId,
+    fun startTransfer(
+        accountIdFrom: UUID,
+        bankAccountIdFrom: UUID,
+        accountIdTo: UUID,
+        bankAccountIdTo: UUID,
+        transferAmount: BigDecimal,
+        transactionId: UUID = UUID.randomUUID(),
+    ): ExternalAccountTransferEvent {
+        return ExternalAccountTransferEvent(
+            accountIdFrom = accountIdFrom,
+            bankAccountIdFrom = bankAccountIdFrom,
+            accountIdTo = accountIdTo,
+            bankAccountIdTo = bankAccountIdTo,
             transferAmount = transferAmount,
-            isDeposit = false
-        )
-    }
-
-    fun processPendingTransaction(
-        bankAccountId: UUID,
-        transactionId: UUID,
-    ): TransferTransactionProcessedEvent {
-        val pendingTransaction = bankAccounts[bankAccountId]!!.pendingTransactions[transactionId]!!
-        // todo sukhoa validation
-        return TransferTransactionProcessedEvent(
-            this.accountId,
-            bankAccountId,
-            transactionId
-        )
-    }
-
-    fun rollbackPendingTransaction(
-        bankAccountId: UUID,
-        transactionId: UUID,
-    ): TransferTransactionRollbackedEvent {
-        val pendingTransaction = bankAccounts[bankAccountId]!!.pendingTransactions[transactionId]!!
-        // todo sukhoa validation
-        return TransferTransactionRollbackedEvent(
-            this.accountId,
-            bankAccountId,
-            transactionId
-        )
-    }
-
-    fun transferBetweenInternalAccounts(
-        fromBankAccountId: UUID,
-        toBankAccountId: UUID,
-        transferAmount: BigDecimal
-    ): InternalAccountTransferEvent {
-        val bankAccountFrom = bankAccounts[fromBankAccountId]
-            ?: throw IllegalArgumentException("No such account to withdraw from: $fromBankAccountId")
-
-        if (transferAmount > bankAccountFrom.balance) {
-            throw IllegalArgumentException("Cannot withdraw $transferAmount. Not enough money: ${bankAccountFrom.balance}")
-        }
-
-        val bankAccountTo = (bankAccounts[toBankAccountId]
-            ?: throw IllegalArgumentException("No such account to transfer to: $toBankAccountId"))
-
-
-        if (bankAccountTo.balance + transferAmount > BigDecimal(10_000_000))
-            throw IllegalStateException("You can't store more than 10.000.000 on account ${bankAccountTo.id}")
-
-        return InternalAccountTransferEvent(
-            accountId = accountId,
-            bankAccountIdFrom = fromBankAccountId,
-            bankAccountIdTo = toBankAccountId,
-            amount = transferAmount
+            transactionId = transactionId,
         )
     }
 
@@ -198,39 +105,118 @@ class Account : AggregateState<UUID, AccountAggregate> {
     }
 
     @StateTransitionFunc
-    fun internalAccountTransfer(event: InternalAccountTransferEvent) {
-        bankAccounts[event.bankAccountIdFrom]!!.withdraw(event.amount)
-        bankAccounts[event.bankAccountIdTo]!!.deposit(event.amount)
+    fun startTransfer(event: ExternalAccountTransferEvent) {
     }
 
-    @StateTransitionFunc
-    fun acceptTransfer(event: TransferTransactionAcceptedEvent) {
-        bankAccounts[event.bankAccountId]!!.initiatePendingTransaction(
-            PendingTransaction(
-                event.transactionId,
-                event.transferAmount,
-                event.isDeposit
+    fun transferFrom(
+        bankAccountIdTo: UUID,
+        transactionId: UUID,
+        transferAmount: BigDecimal,
+        accountIdFrom: UUID,
+        bankAccountIdFrom: UUID,
+        accountIdTo: UUID
+    ): Event<AccountAggregate> {
+        val bankAccount = bankAccounts[bankAccountIdFrom]
+            ?: return ExternalAccountTransferWithdrawFailedEvent(
+                accountIdFrom = accountIdFrom,
+                bankAccountIdFrom = bankAccountIdFrom,
+                accountIdTo = accountIdTo,
+                bankAccountIdTo = bankAccountIdTo,
+                transferAmount = transferAmount,
+                transactionId = transactionId,
+                "Bank account with id = $bankAccountIdFrom not found"
             )
+
+        if (transferAmount > bankAccount.balance) {
+            return ExternalAccountTransferWithdrawFailedEvent(
+                accountIdFrom = accountIdFrom,
+                bankAccountIdFrom = bankAccountIdFrom,
+                accountIdTo = accountIdTo,
+                bankAccountIdTo = bankAccountIdTo,
+                transferAmount = transferAmount,
+                transactionId = transactionId,
+                "Cannot withdraw $transferAmount. Not enough money: ${bankAccount.balance}"
+            )
+        }
+        return try {
+            withdraw(bankAccountIdFrom, transferAmount)
+
+            ExternalAccountTransferWithdrawSuccessEvent(
+                accountIdFrom = accountIdFrom,
+                bankAccountIdFrom = bankAccountIdFrom,
+                accountIdTo = accountIdTo,
+                bankAccountIdTo = bankAccountIdTo,
+                transferAmount = transferAmount,
+                transactionId = transactionId,
+            )
+        } catch (e: Exception) {
+            ExternalAccountTransferWithdrawFailedEvent(
+                accountIdFrom = accountIdFrom,
+                bankAccountIdFrom = bankAccountIdFrom,
+                accountIdTo = accountIdTo,
+                bankAccountIdTo = bankAccountIdTo,
+                transferAmount = transferAmount,
+                transactionId = transactionId,
+                message = e.message.orEmpty()
+            )
+        }
+    }
+
+    fun transferTo(
+        bankAccountIdTo: UUID,
+        transactionId: UUID,
+        transferAmount: BigDecimal,
+        accountIdFrom: UUID,
+        bankAccountIdFrom: UUID,
+        accountIdTo: UUID
+    ): Event<AccountAggregate> {
+        return try {
+            deposit(bankAccountIdTo, transferAmount)
+            ExternalAccountTransferDepositSuccessEvent(
+                accountIdFrom = accountIdFrom,
+                bankAccountIdFrom = bankAccountIdFrom,
+                accountIdTo = accountIdTo,
+                bankAccountIdTo = bankAccountIdTo,
+                transferAmount = transferAmount,
+                transactionId = transactionId,
+            )
+        } catch (e: Exception) {
+            ExternalAccountTransferDepositFailedEvent(
+                accountIdFrom = accountIdFrom,
+                bankAccountIdFrom = bankAccountIdFrom,
+                accountIdTo = accountIdTo,
+                bankAccountIdTo = bankAccountIdTo,
+                transferAmount = transferAmount,
+                transactionId = transactionId,
+                message = e.message.orEmpty()
+            )
+        }
+    }
+
+    fun rollbackTransferFrom(
+        bankAccountIdTo: UUID,
+        transactionId: UUID,
+        transferAmount: BigDecimal,
+        accountIdFrom: UUID,
+        bankAccountIdFrom: UUID,
+        accountIdTo: UUID
+    ): ExternalAccountTransferFailedEvent{
+        deposit(bankAccountIdTo, transferAmount)
+        return ExternalAccountTransferFailedEvent(
+            accountIdFrom = accountIdFrom,
+            bankAccountIdFrom = bankAccountIdFrom,
+            accountIdTo = accountIdTo,
+            bankAccountIdTo = bankAccountIdTo,
+            transferAmount = transferAmount,
+            transactionId = transactionId,
+            message = "rollbacked"
         )
     }
-
-    @StateTransitionFunc
-    fun processTransaction(event: TransferTransactionProcessedEvent) =
-        bankAccounts[event.bankAccountId]!!.processPendingTransaction(event.transactionId)
-
-    @StateTransitionFunc
-    fun rollbackTransaction(event: TransferTransactionRollbackedEvent) =
-        bankAccounts[event.bankAccountId]!!.rollbackPendingTransaction(event.transactionId)
-
-    @StateTransitionFunc
-    fun externalAccountTransferDecline(event: TransferTransactionDeclinedEvent) = Unit
 }
-
 
 data class BankAccount(
     val id: UUID,
     internal var balance: BigDecimal = BigDecimal.ZERO,
-    internal var pendingTransactions: MutableMap<UUID, PendingTransaction> = mutableMapOf()
 ) {
     fun deposit(amount: BigDecimal) {
         this.balance = this.balance.add(amount)
@@ -239,31 +225,4 @@ data class BankAccount(
     fun withdraw(amount: BigDecimal) {
         this.balance = this.balance.subtract(amount)
     }
-
-    fun initiatePendingTransaction(pendingTransaction: PendingTransaction) {
-        if (!pendingTransaction.isDeposit) {
-            withdraw(pendingTransaction.transferAmountFrozen)
-        }
-        pendingTransactions[pendingTransaction.transactionId] = pendingTransaction
-    }
-
-    fun processPendingTransaction(trId: UUID) {
-        val pendingTransaction = pendingTransactions.remove(trId)!!
-        if (pendingTransaction.isDeposit) {
-            deposit(pendingTransaction.transferAmountFrozen)
-        }
-    }
-
-    fun rollbackPendingTransaction(trId: UUID) {
-        val pendingTransaction = pendingTransactions.remove(trId)!!
-        if (!pendingTransaction.isDeposit) {
-            deposit(pendingTransaction.transferAmountFrozen) // refund
-        }
-    }
 }
-
-data class PendingTransaction(
-    val transactionId: UUID,
-    val transferAmountFrozen: BigDecimal,
-    val isDeposit: Boolean
-)

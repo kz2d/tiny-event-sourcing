@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalTime::class)
+
 package ru.quipy.utils
 
 import kotlinx.coroutines.*
@@ -10,6 +12,7 @@ import kotlin.coroutines.EmptyCoroutineContext
 import kotlin.system.measureTimeMillis
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.hours
+import kotlin.time.ExperimentalTime
 
 class PeriodicalJob(
     val jobNamespace: String,

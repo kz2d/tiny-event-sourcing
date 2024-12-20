@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalTime::class)
+
 package ru.quipy.streams
 
 import kotlinx.coroutines.*
@@ -15,6 +17,7 @@ import ru.quipy.domain.EventStreamReadIndex
 import ru.quipy.utils.NamedThreadFactory
 import java.util.*
 import java.util.concurrent.Executors
+import kotlin.time.ExperimentalTime
 
 /**
  * Allows to read batches of event-records from some underlying storage (event bus, event store).

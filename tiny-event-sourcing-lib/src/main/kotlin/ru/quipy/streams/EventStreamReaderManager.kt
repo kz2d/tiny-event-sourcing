@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalTime::class)
+
 package ru.quipy.streams
 
 import kotlinx.coroutines.ExecutorCoroutineDispatcher
@@ -8,6 +10,7 @@ import ru.quipy.core.EventSourcingProperties
 import ru.quipy.database.EventStore
 import ru.quipy.domain.ActiveEventStreamReader
 import ru.quipy.domain.Aggregate
+import kotlin.time.ExperimentalTime
 
 interface EventStreamReaderManager {
 

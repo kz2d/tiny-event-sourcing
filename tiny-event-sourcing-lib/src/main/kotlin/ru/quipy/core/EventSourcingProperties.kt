@@ -1,7 +1,10 @@
+@file:OptIn(ExperimentalTime::class)
+
 package ru.quipy.core
 
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
+import kotlin.time.ExperimentalTime
 
 class EventSourcingProperties (
     var snapshotFrequency: Int = 10,
