@@ -1,14 +1,9 @@
 package ru.quipy.bankDemo.transfers.logic
 
+import ru.quipy.bankDemo.transfers.api.*
 import ru.quipy.core.annotations.StateTransitionFunc
 import ru.quipy.domain.AggregateState
 import ru.quipy.domain.Event
-import ru.quipy.bankDemo.transfers.api.ExternalTransferDepositEvent
-import ru.quipy.bankDemo.transfers.api.ExternalTransferRollbackDepositEvent
-import ru.quipy.bankDemo.transfers.api.ExternalTransferRollbackWithdrawEvent
-import ru.quipy.bankDemo.transfers.api.ExternalTransferSuccessEvent
-import ru.quipy.bankDemo.transfers.api.ExternalTransferWithdrawEvent
-import ru.quipy.bankDemo.transfers.api.TransferAggregate
 import java.math.BigDecimal
 import java.util.UUID
 
@@ -102,6 +97,16 @@ class Transfer : AggregateState<UUID, TransferAggregate> {
     @StateTransitionFunc
     fun depositMoneyTo(event: ExternalTransferDepositEvent) {
         status = TransferState.PROCESSING
+    }
+
+    @StateTransitionFunc
+    fun createEvent(event: TransferTransactionCreatedEvent) {
+        status = TransferState.PROCESSING
+    }
+
+    @StateTransitionFunc
+    fun createEvent2(event: ExternalTransferFailedEvent) {
+        status = TransferState.FAILED
     }
 
     @StateTransitionFunc

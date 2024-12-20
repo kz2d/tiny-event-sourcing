@@ -39,12 +39,17 @@ class AccountController(
         return accountEsService.update(accountId) { it.createNewBankAccount() }
     }
 
+    @PostMapping("/{accountId}/bankAccount/{bankAccountId}/topup")
+    fun createBankAccount(@PathVariable accountId: UUID, @PathVariable bankAccountId: UUID) {
+        accountEsService.getState(accountId)?.bankAccounts?.get(bankAccountId)?.deposit(BigDecimal(10_000_000));
+    }
+
     @GetMapping("/{accountId}/bankAccount/{bankAccountId}")
     fun getBankAccount(@PathVariable accountId: UUID, @PathVariable bankAccountId: UUID): BankAccount? {
         return accountEsService.getState(accountId)?.bankAccounts?.get(bankAccountId)
     }
 
-    @GetMapping("/{accountId}/bankAccount/{bankAccountId}/transfer/{toAccountId}/{toBankAccountId}")
+    @GetMapping("/{accountId}/bankAccount/{bankAccountId}/to/{toAccountId}/bankAccount/{toBankAccountId}")
     fun transfer(
         @PathVariable accountId: UUID,
         @PathVariable bankAccountId: UUID,

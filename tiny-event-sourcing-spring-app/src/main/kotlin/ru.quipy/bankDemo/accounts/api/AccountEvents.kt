@@ -144,7 +144,7 @@ data class ExternalAccountTransferDepositFailedEvent(
     name = EXTERNAL_ACCOUNT_TRANSFER_DEPOSIT_FAILED,
 )
 
-@DomainEvent(name = EXTERNAL_ACCOUNT_TRANSFER_DEPOSIT_FAILED)
+@DomainEvent(name = EXTERNAL_ACCOUNT_TRANSFER_FAILED)
 data class ExternalAccountTransferFailedEvent(
     val accountIdFrom: UUID,
     val bankAccountIdFrom: UUID,
@@ -154,6 +154,6 @@ data class ExternalAccountTransferFailedEvent(
     val transactionId: UUID,
     val message: String = "Limit"
 ) : Event<AccountAggregate>(
-    name = EXTERNAL_ACCOUNT_TRANSFER_DEPOSIT_FAILED,
+    name = EXTERNAL_ACCOUNT_TRANSFER_FAILED,
 )
 

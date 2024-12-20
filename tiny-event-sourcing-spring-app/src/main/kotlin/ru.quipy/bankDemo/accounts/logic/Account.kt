@@ -1,19 +1,9 @@
 package ru.quipy.bankDemo.accounts.logic
 
+import ru.quipy.bankDemo.accounts.api.*
 import ru.quipy.core.annotations.StateTransitionFunc
 import ru.quipy.domain.AggregateState
 import ru.quipy.domain.Event
-import ru.quipy.bankDemo.accounts.api.AccountAggregate
-import ru.quipy.bankDemo.accounts.api.AccountCreatedEvent
-import ru.quipy.bankDemo.accounts.api.BankAccountCreatedEvent
-import ru.quipy.bankDemo.accounts.api.BankAccountDepositEvent
-import ru.quipy.bankDemo.accounts.api.BankAccountWithdrawalEvent
-import ru.quipy.bankDemo.accounts.api.ExternalAccountTransferDepositFailedEvent
-import ru.quipy.bankDemo.accounts.api.ExternalAccountTransferDepositSuccessEvent
-import ru.quipy.bankDemo.accounts.api.ExternalAccountTransferEvent
-import ru.quipy.bankDemo.accounts.api.ExternalAccountTransferFailedEvent
-import ru.quipy.bankDemo.accounts.api.ExternalAccountTransferWithdrawFailedEvent
-import ru.quipy.bankDemo.accounts.api.ExternalAccountTransferWithdrawSuccessEvent
 import java.math.BigDecimal
 import java.util.UUID
 
@@ -106,6 +96,34 @@ class Account : AggregateState<UUID, AccountAggregate> {
 
     @StateTransitionFunc
     fun startTransfer(event: ExternalAccountTransferEvent) {
+    }
+
+    @StateTransitionFunc
+    fun startTransfer(event: ExternalAccountTransferFailedEvent) {
+    }
+
+    @StateTransitionFunc
+    fun startTransfer(event: ExternalAccountTransferDepositFailedEvent) {
+    }
+
+    @StateTransitionFunc
+    fun startTransfer(event: ExternalAccountTransferDepositSuccessEvent) {
+    }
+
+    @StateTransitionFunc
+    fun startTransfer(event: ExternalAccountTransferWithdrawSuccessEvent) {
+    }
+
+    @StateTransitionFunc
+    fun startTransfer(event: ExternalAccountTransferRollbackDepositEvent) {
+    }
+
+    @StateTransitionFunc
+    fun startTransfer(event: ExternalAccountTransferRollbackWithdrawEvent) {
+    }
+
+    @StateTransitionFunc
+    fun startTransfer(event: ExternalAccountTransferWithdrawFailedEvent) {
     }
 
     fun transferFrom(
