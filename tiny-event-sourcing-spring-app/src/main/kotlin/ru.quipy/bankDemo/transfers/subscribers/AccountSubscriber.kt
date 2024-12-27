@@ -12,6 +12,7 @@ import ru.quipy.bankDemo.accounts.api.ExternalAccountTransferWithdrawFailedEvent
 import ru.quipy.bankDemo.accounts.api.ExternalAccountTransferWithdrawSuccessEvent
 import ru.quipy.bankDemo.transfers.api.TransferAggregate
 import ru.quipy.bankDemo.transfers.logic.Transfer
+import ru.quipy.saga.SagaManager
 import ru.quipy.streams.AggregateSubscriptionsManager
 import java.util.UUID
 import javax.annotation.PostConstruct
@@ -19,15 +20,25 @@ import javax.annotation.PostConstruct
 @Component
 class AccountSubscriber(
     private val subscriptionsManager: AggregateSubscriptionsManager,
-    private val transactionEsService: EventSourcingService<UUID, TransferAggregate, Transfer>
+    private val transactionEsService: EventSourcingService<UUID, TransferAggregate, Transfer>,
+    val sagaManager: SagaManager
 ) {
     private val logger: Logger = LoggerFactory.getLogger(AccountSubscriber::class.java)
 
     @PostConstruct
     fun init() {
         subscriptionsManager.createSubscriber(AccountAggregate::class, "transfers::accounts-subscriber") {
+            println("message")
             `when`(ExternalAccountTransferEvent::class) { event ->
-                transactionEsService.update(event.transactionId) {
+                println("transaction started")
+                val sagaContext = sagaManager
+                    .launchSaga("TRANSFER2", "start transfer money")
+                    .sagaContext()
+                transactionEsService.create{
+                    it.createNew(event.transactionId)
+                };
+
+                transactionEsService.update(event.transactionId){
                     it.withdrawMoneyFrom(
                         accountIdFrom = event.accountIdFrom,
                         bankAccountIdFrom = event.bankAccountIdFrom,
@@ -68,9 +79,10 @@ class AccountSubscriber(
                 }
             }
             `when`(ExternalAccountTransferWithdrawFailedEvent::class) { event ->
-                transactionEsService.update(event.transactionId) {
-                    TODO("error event -- catch on account side")
-                }
+                logger.info(event.toString())
+//                transactionEsService.update(event.transactionId) {
+//                    TODO("error event -- catch on account side")
+//                }
             }
 
         }

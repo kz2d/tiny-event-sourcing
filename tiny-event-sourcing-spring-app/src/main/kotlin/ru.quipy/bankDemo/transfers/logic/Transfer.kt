@@ -1,5 +1,6 @@
 package ru.quipy.bankDemo.transfers.logic
 
+import ru.quipy.bankDemo.accounts.api.AccountCreatedEvent
 import ru.quipy.bankDemo.transfers.api.*
 import ru.quipy.core.annotations.StateTransitionFunc
 import ru.quipy.domain.AggregateState
@@ -12,6 +13,10 @@ class Transfer : AggregateState<UUID, TransferAggregate> {
     var status = TransferState.CREATED
 
     override fun getId(): UUID = transferId
+
+   fun createNew(transferId: UUID) : TrasferCreatedEvent{
+       return TrasferCreatedEvent(transferId)
+   }
 
     fun withdrawMoneyFrom(
         accountIdFrom: UUID,
@@ -122,6 +127,16 @@ class Transfer : AggregateState<UUID, TransferAggregate> {
     @StateTransitionFunc
     fun notifyTransferSuccess(event: ExternalTransferSuccessEvent) {
         status = TransferState.SUCCEEDED
+    }
+
+    @StateTransitionFunc
+    fun notifyTransferSuccess(event: TrasferCreatedEvent) {
+        status = TransferState.PROCESSING
+    }
+
+    @StateTransitionFunc
+    fun createNewBankAccount(event: TrasferCreatedEvent) {
+        transferId = event.transferId
     }
 
     enum class TransferState {

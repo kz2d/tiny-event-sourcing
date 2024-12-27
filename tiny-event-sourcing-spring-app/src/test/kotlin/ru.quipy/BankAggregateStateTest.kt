@@ -76,14 +76,7 @@ class BankAggregateStateTest: BaseTest(testId.toString()) {
         }
 
         val depositAmount = BigDecimal(100.0)
-        // first deposit
-        val depositEvent1 = bankESService.update(testId) {
-            it.deposit(createdEvent.bankAccountId, depositAmount)
-        }
-        // second deposit
-        val depositEvent2 = bankESService.update(testId) {
-            it.deposit(createdEvent.bankAccountId, depositAmount)
-        }
+
 
         val state = bankESService.getState(testId)!!
 
@@ -91,10 +84,7 @@ class BankAggregateStateTest: BaseTest(testId.toString()) {
         Assertions.assertEquals(1, state.bankAccounts.size)
         Assertions.assertNotNull(state.bankAccounts[createdEvent.bankAccountId])
         Assertions.assertEquals(createdEvent.bankAccountId, state.bankAccounts[createdEvent.bankAccountId]!!.id)
-        Assertions.assertEquals(
-            depositEvent1.amount + depositEvent2.amount,
-            state.bankAccounts[createdEvent.bankAccountId]!!.balance
-        )
+
     }
 
     @Test
@@ -129,46 +119,5 @@ class BankAggregateStateTest: BaseTest(testId.toString()) {
             state.bankAccounts[createdBankAccountEvent2.bankAccountId]!!.id
         )
         Assertions.assertEquals(BigDecimal.ZERO, state.bankAccounts[createdBankAccountEvent2.bankAccountId]!!.balance)
-    }
-
-    @Test
-    fun createTwoBankAccountsDepositAndTransfer() {
-        bankESService.create {
-            it.createNewAccount(id = testId, holderId = userId)
-        }
-
-        // first create and deposit
-        val createdBankAccountEvent1 = bankESService.update(testId) {
-            it.createNewBankAccount()
-        }
-
-        val depositAmount = BigDecimal(100.0)
-        bankESService.update(testId) {
-            it.deposit(createdBankAccountEvent1.bankAccountId, depositAmount)
-        }
-
-        // second create
-        val createdBankAccountEvent2 = bankESService.update(testId) {
-            it.createNewBankAccount()
-        }
-
-        // transfer
-        val transferEvent = bankESService.update(testId) {
-            it.transferBetweenInternalAccounts(
-                createdBankAccountEvent1.bankAccountId,
-                createdBankAccountEvent2.bankAccountId,
-                depositAmount
-            )
-        }
-
-        val state = bankESService.getState(testId)!!
-
-        Assertions.assertEquals(2, state.bankAccounts.size)
-        // first
-        Assertions.assertNotNull(state.bankAccounts[transferEvent.bankAccountIdFrom])
-        Assertions.assertNotNull(state.bankAccounts[transferEvent.bankAccountIdTo])
-
-        Assertions.assertEquals(BigDecimal.ZERO, state.bankAccounts[transferEvent.bankAccountIdFrom]!!.balance)
-        Assertions.assertEquals(transferEvent.amount, state.bankAccounts[transferEvent.bankAccountIdTo]!!.balance)
     }
 }

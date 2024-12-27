@@ -39,9 +39,18 @@ class AccountController(
         return accountEsService.update(accountId) { it.createNewBankAccount() }
     }
 
-    @PostMapping("/{accountId}/bankAccount/{bankAccountId}/topup")
-    fun createBankAccount(@PathVariable accountId: UUID, @PathVariable bankAccountId: UUID) {
-        accountEsService.getState(accountId)?.bankAccounts?.get(bankAccountId)?.deposit(BigDecimal(10_000_000));
+    @PostMapping("/{accountId}/bankAccount/{bankAccountId}/topup/{amount}")
+    fun deposit(@PathVariable accountId: UUID, @PathVariable bankAccountId: UUID, amount: BigDecimal) {
+        accountEsService.update(accountId)
+        {
+
+//           it.deposit(bankAccountId, BigDecimal(10_000))
+
+            it.depositNice(bankAccountId, amount)
+//            it.createNewAccount(holderId = UUID.randomUUID())
+        }
+
+        println(accountEsService.getState(accountId)?.bankAccounts?.get(bankAccountId))
     }
 
     @GetMapping("/{accountId}/bankAccount/{bankAccountId}")
@@ -49,18 +58,22 @@ class AccountController(
         return accountEsService.getState(accountId)?.bankAccounts?.get(bankAccountId)
     }
 
-    @GetMapping("/{accountId}/bankAccount/{bankAccountId}/to/{toAccountId}/bankAccount/{toBankAccountId}")
+    @GetMapping("/{accountId}/bankAccount/{bankAccountId}/to/{toAccountId}/bankAccount/{toBankAccountId}/{amount}")
     fun transfer(
         @PathVariable accountId: UUID,
         @PathVariable bankAccountId: UUID,
         @PathVariable toAccountId: UUID,
         @PathVariable toBankAccountId: UUID,
-        @RequestBody amount: BigDecimal,
+        @PathVariable amount: BigDecimal,
     ): ExternalAccountTransferEvent {
         val sagaContext = sagaManager
             .launchSaga("TRANSFER", "start transfer money")
             .sagaContext()
-        return accountEsService.create(sagaContext) {
+        accountEsService.getState(accountId)?.bankAccounts?.get(bankAccountId) ?: println("user not exist")
+        accountEsService.getState(toAccountId)?.bankAccounts?.get(toBankAccountId) ?: println("user 2not exist")
+
+        println("lol")
+        return accountEsService.update(accountId, sagaContext) {
             it.startTransfer(
                 accountId,
                 bankAccountId,

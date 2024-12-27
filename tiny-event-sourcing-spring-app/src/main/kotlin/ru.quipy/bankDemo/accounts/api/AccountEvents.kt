@@ -32,6 +32,15 @@ data class AccountCreatedEvent(
     name = ACCOUNT_CREATED,
 )
 
+@DomainEvent(name = INTERNAL_ACCOUNT_TRANSFER)
+data class DepositAccountEvent(
+    var bankAccountId: UUID,
+    var deposit: BigDecimal
+) : Event<AccountAggregate>(
+    name = INTERNAL_ACCOUNT_TRANSFER,
+)
+
+
 @DomainEvent(name = BANK_ACCOUNT_CREATED)
 data class BankAccountCreatedEvent(
     val accountId: UUID,

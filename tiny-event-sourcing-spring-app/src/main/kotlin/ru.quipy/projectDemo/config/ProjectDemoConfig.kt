@@ -46,11 +46,11 @@ class ProjectDemoConfig {
 
         eventStreamManager.maintenance {
             onRecordHandledSuccessfully { streamName, eventName ->
-                logger.info("Stream $streamName successfully processed record of $eventName")
+//                logger.info("Stream $streamName successfully processed record of $eventName")
             }
 
             onBatchRead { streamName, batchSize ->
-                logger.info("Stream $streamName read batch size: $batchSize")
+//                logger.info("Stream $streamName read batch size: $batchSize")
             }
         }
     }

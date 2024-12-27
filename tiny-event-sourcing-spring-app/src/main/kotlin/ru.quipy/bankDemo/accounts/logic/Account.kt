@@ -38,7 +38,7 @@ class Account : AggregateState<UUID, AccountAggregate> {
         if (bankAccounts.values.sumOf { it.balance } + amount > BigDecimal(25_000_000))
             throw IllegalStateException("You can't store more than 25.000.000 in total")
 
-        bankAccount.deposit(amount)
+//        bankAccount.deposit(amount)
     }
 
     fun withdraw(
@@ -52,7 +52,7 @@ class Account : AggregateState<UUID, AccountAggregate> {
             throw IllegalArgumentException("Cannot withdraw $amount. Not enough money: ${fromBankAccount.balance}")
         }
 
-        fromBankAccount.withdraw(amount)
+//        fromBankAccount.withdraw(amount)
     }
 
     fun startTransfer(
@@ -63,6 +63,7 @@ class Account : AggregateState<UUID, AccountAggregate> {
         transferAmount: BigDecimal,
         transactionId: UUID = UUID.randomUUID(),
     ): ExternalAccountTransferEvent {
+        println("cheburek")
         return ExternalAccountTransferEvent(
             accountIdFrom = accountIdFrom,
             bankAccountIdFrom = bankAccountIdFrom,
@@ -70,6 +71,15 @@ class Account : AggregateState<UUID, AccountAggregate> {
             bankAccountIdTo = bankAccountIdTo,
             transferAmount = transferAmount,
             transactionId = transactionId,
+        )
+    }
+
+    fun depositNice(bankAccountId: UUID, amount: BigDecimal) :DepositAccountEvent {
+//        this.bankAccounts.get(bankAccountId)?.balance = this.bankAccounts.get(bankAccountId)?.balance?.plus(BigDecimal(10_000))!!
+        deposit(bankAccountId, amount)
+        return DepositAccountEvent(
+            bankAccountId,
+            amount
         )
     }
 
@@ -91,7 +101,10 @@ class Account : AggregateState<UUID, AccountAggregate> {
 
     @StateTransitionFunc
     fun withdraw(event: BankAccountWithdrawalEvent) {
+//        println("no pls withdrow")
+        withdraw(event.bankAccountId, event.amount)
         bankAccounts[event.bankAccountId]!!.withdraw(event.amount)
+
     }
 
     @StateTransitionFunc
@@ -99,7 +112,17 @@ class Account : AggregateState<UUID, AccountAggregate> {
     }
 
     @StateTransitionFunc
+    fun startTransfer(event: DepositAccountEvent) {
+        this.bankAccounts.get(event.bankAccountId)?.balance = this.bankAccounts.get(event.bankAccountId)?.balance?.plus(
+            event.deposit
+        )!!
+    }
+
+    @StateTransitionFunc
     fun startTransfer(event: ExternalAccountTransferFailedEvent) {
+        this.bankAccounts.get(event.bankAccountIdFrom)?.balance = this.bankAccounts.get(event.bankAccountIdFrom)?.balance?.plus(
+            event.transferAmount
+        )!!
     }
 
     @StateTransitionFunc
@@ -108,10 +131,19 @@ class Account : AggregateState<UUID, AccountAggregate> {
 
     @StateTransitionFunc
     fun startTransfer(event: ExternalAccountTransferDepositSuccessEvent) {
+//        this.bankAccounts[event.bankAccountIdTo] += event.
+        this.bankAccounts.get(event.bankAccountIdTo)?.balance = this.bankAccounts.get(event.bankAccountIdTo)?.balance?.plus(
+            event.transferAmount
+        )!!
     }
 
     @StateTransitionFunc
     fun startTransfer(event: ExternalAccountTransferWithdrawSuccessEvent) {
+//        println("no pls")
+//        bankAccounts[event.bankAccountIdTo] -= event.transferAmount
+        this.bankAccounts.get(event.bankAccountIdFrom)?.balance = this.bankAccounts.get(event.bankAccountIdFrom)?.balance?.minus(
+            event.transferAmount
+        )!!
     }
 
     @StateTransitionFunc
@@ -157,7 +189,7 @@ class Account : AggregateState<UUID, AccountAggregate> {
             )
         }
         return try {
-            withdraw(bankAccountIdFrom, transferAmount)
+//            withdraw(bankAccountIdFrom, transferAmount)
 
             ExternalAccountTransferWithdrawSuccessEvent(
                 accountIdFrom = accountIdFrom,

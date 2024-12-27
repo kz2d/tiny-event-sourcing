@@ -1,5 +1,7 @@
 package ru.quipy.bankDemo.transfers.api
 
+import ru.quipy.bankDemo.accounts.api.ACCOUNT_CREATED
+import ru.quipy.bankDemo.accounts.api.AccountAggregate
 import ru.quipy.core.annotations.DomainEvent
 import ru.quipy.domain.Event
 import java.math.BigDecimal
@@ -13,6 +15,16 @@ const val EXTERNAL_TRANSFER_WITHDRAW = "EXTERNAL_TRANSFER_WITHDRAW_EVENT"
 const val EXTERNAL_TRANSFER_ROLLBACK_WITHDRAW = "EXTERNAL_TRANSFER_ROLLBACK_WITHDRAW_EVENT"
 const val EXTERNAL_TRANSFER_DEPOSIT = "EXTERNAL_TRANSFER_DEPOSIT_EVENT"
 const val EXTERNAL_TRANSFER_ROLLBACK_DEPOSIT = "EXTERNAL_TRANSFER_ROLLBACK_DEPOSIT_EVENT"
+const val EXTERNAL_TRANSFER_CREATED = "EXTERNAL_TRANSFER_ROLLBACK_CREATED"
+
+
+@DomainEvent(name = EXTERNAL_TRANSFER_CREATED)
+data class TrasferCreatedEvent(
+    val transferId: UUID
+) : Event<TransferAggregate>(
+    name = EXTERNAL_TRANSFER_CREATED,
+)
+
 
 @DomainEvent(name = TRANSFER_TRANSACTION_CREATED)
 data class TransferTransactionCreatedEvent(
